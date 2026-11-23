@@ -42,6 +42,12 @@ public class GadgetStore {
                 case PREVIEW -> staff.stream().limit(3).forEach(employee ->
                     System.out.printf("%s | %s | %s%n", employee.name(),
                         employee.managerType(), employee.department()));
+                case SORT -> {
+                    List<Employee> sorted = EmployeeSort.byName(staff);
+                    System.out.printf("Showing %d of %d employees in alphabetical order:%n",
+                            Math.min(20, sorted.size()), sorted.size());
+                    sorted.stream().limit(20).forEach(employee -> System.out.println(employee.name()));
+                }
                 case EXIT -> { return; }
             }
         }
@@ -49,12 +55,42 @@ public class GadgetStore {
 }
 
 enum MenuOption {
-    PREVIEW("Preview first three employees"), EXIT("Exit");
+    PREVIEW("Preview first three employees"), EXIT("Exit"), SORT("Sort employees by name");
     final String label;
     MenuOption(String label) { this.label = label; }
 }
 
 record Employee(String name, String managerType, String department) {}
+
+class EmployeeSort {
+    static final Comparator<Employee> NAME_ORDER =
+            Comparator.comparing(Employee::name, String.CASE_INSENSITIVE_ORDER);
+
+    static List<Employee> byName(List<Employee> staff) {
+        Employee[] records = staff.toArray(Employee[]::new);
+        sortRange(records, new Employee[records.length], 0, records.length);
+        return new ArrayList<>(Arrays.asList(records));
+    }
+
+    // Sort the range from start (inclusive) to end (exclusive).
+    private static void sortRange(Employee[] records, Employee[] buffer, int start, int end) {
+        if (end - start < 2) return;
+        int middle = start + (end - start) / 2;
+        sortRange(records, buffer, start, middle);
+        sortRange(records, buffer, middle, end);
+
+        int left = start;
+        int right = middle;
+        for (int i = start; i < end; i++) {
+            if (right == end || (left < middle && NAME_ORDER.compare(records[left], records[right]) <= 0)) {
+                buffer[i] = records[left++];
+            } else {
+                buffer[i] = records[right++];
+            }
+        }
+        System.arraycopy(buffer, start, records, start, end - start);
+    }
+}
 
 class EmployeeFile {
     static List<Employee> read(Path file) throws IOException {

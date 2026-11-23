@@ -21,6 +21,7 @@ public class GadgetStore {
     }
 
     private static void runMenu(Scanner input, List<Employee> staff) {
+        List<Employee> sorted = EmployeeSort.byName(staff);
         MenuOption[] options = MenuOption.values();
         while (true) {
             for (int i = 0; i < options.length; i++) {
@@ -43,10 +44,25 @@ public class GadgetStore {
                     System.out.printf("%s | %s | %s%n", employee.name(),
                         employee.managerType(), employee.department()));
                 case SORT -> {
-                    List<Employee> sorted = EmployeeSort.byName(staff);
                     System.out.printf("Showing %d of %d employees in alphabetical order:%n",
                             Math.min(20, sorted.size()), sorted.size());
                     sorted.stream().limit(20).forEach(employee -> System.out.println(employee.name()));
+                }
+                case SEARCH -> {
+                    System.out.print("Enter full name: ");
+                    if (!input.hasNextLine()) return;
+                    String name = input.nextLine().trim();
+                    if (name.isEmpty()) {
+                        System.out.println("Please enter a full name.");
+                        continue;
+                    }
+                    Employee match = EmployeeSearch.find(sorted, name, 0, sorted.size() - 1);
+                    if (match == null) {
+                        System.out.println("No employee found for " + name + ".");
+                    } else {
+                        System.out.printf("%s | %s | %s%n", match.name(),
+                                match.managerType(), match.department());
+                    }
                 }
                 case EXIT -> { return; }
             }
@@ -55,7 +71,8 @@ public class GadgetStore {
 }
 
 enum MenuOption {
-    PREVIEW("Preview first three employees"), EXIT("Exit"), SORT("Sort employees by name");
+    PREVIEW("Preview first three employees"), EXIT("Exit"), SORT("Sort employees by name"),
+    SEARCH("Search by full name");
     final String label;
     MenuOption(String label) { this.label = label; }
 }
@@ -89,6 +106,18 @@ class EmployeeSort {
             }
         }
         System.arraycopy(buffer, start, records, start, end - start);
+    }
+}
+
+class EmployeeSearch {
+    static Employee find(List<Employee> sorted, String name, int low, int high) {
+        if (low > high) return null;
+        int middle = low + (high - low) / 2;
+        Employee employee = sorted.get(middle);
+        int comparison = String.CASE_INSENSITIVE_ORDER.compare(name, employee.name());
+        if (comparison == 0) return employee;
+        if (comparison < 0) return find(sorted, name, low, middle - 1);
+        return find(sorted, name, middle + 1, high);
     }
 }
 
